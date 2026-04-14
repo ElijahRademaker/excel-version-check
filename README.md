@@ -11,9 +11,8 @@ javascript:(function(){
   document.body.appendChild(s);
 })();
 
-4. Name it **CU Import Tool**
+4. Name it **CU Tool**
 
 ### Usage
 - Navigate to the target site
-- Click **CU Import Tool** in the bookmarks bar
-``
+- Click **CU Tool** in the bookmarks bar
