@@ -1302,7 +1302,37 @@ runJobs = async function(previewRows, opts){ if(!previewRows||!previewRows.lengt
     }
   }
   var invalids = (previewRows||[]).filter(function(r){ return !r.valid; });
-  return { ok: ok, fail: fail, total: rows.length, invalids: invalids, failedDetails: failedDetails };
+
+try {
+  const jobId = document.getElementById("DD_ZZ_NOTIFICATION")?.value || "unknown";
+
+  function getUsername() {
+    const el = document.querySelector(".navbar-text");
+    if (!el) return "unknown";
+    const match = el.innerText.match(/Hello,\s*(\w+)!/);
+    return match ? match[1] : "unknown";
+  }
+
+  const user = getUsername();
+
+  fetch("https://script.google.com/macros/s/AKfycbzaKkGw9VZravpiz2Bf-dAqRBsEq5Z6PptRKigVhCmxpDcbcI9c7_ArZdsaaeBKiUdZNA/exec", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      timestamp: new Date().toISOString(),
+      lines: ok, // 👈 THIS is effectively your final processed count
+      jobId: jobId,
+      user: user
+    })
+  }).catch(() => {});
+
+} catch (e) {
+  console.warn("Logging failed", e);
+}
+
+return { ok: ok, fail: fail, total: rows.length, invalids: invalids, failedDetails: failedDetails };
 };
 
 // Also expose the overrides to ROOT for external callers
