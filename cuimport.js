@@ -11,7 +11,7 @@
 (function () {
 
   // Root and State
-const IMPORTER_VERSION = '1.19.21';
+const IMPORTER_VERSION = '1.19.22';
 
 // PAGE-WIDE DARK MODE
 (function(){
