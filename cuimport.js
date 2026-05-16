@@ -5,13 +5,11 @@
  * To-Do:
  * - Look into the ModifyDD network call to bulk instant add via the save function called by SAP in the Network sources.
  * - Preview progress counter.
- * - Static site for Bookmarklet to pull from without requiring sharepoint login access.
- * - See if I can optimize the speed of preview.
  */
 (function () {
 
   // Root and State
-const IMPORTER_VERSION = '1.19.22';
+const IMPORTER_VERSION = '1.19.23';
 
 // PAGE-WIDE DARK MODE
 (function(){
@@ -1285,6 +1283,7 @@ runJobs = async function(previewRows, opts){ if(!previewRows||!previewRows.lengt
   opts = opts || {}; var timeoutMs = opts.timeoutMs || 9000;
   var rows = (previewRows||[]).filter(function(r){ return r && r.valid; });
   var ok=0, fail=0; var failedDetails=[];
+  const startTime = Date.now();
   for (var i=0;i<rows.length;i++){
     var r = rows[i];
     try {
@@ -1304,29 +1303,45 @@ runJobs = async function(previewRows, opts){ if(!previewRows||!previewRows.lengt
   var invalids = (previewRows||[]).filter(function(r){ return !r.valid; });
 
 try {
-  const jobId = document.getElementById("DD_ZZ_NOTIFICATION")?.value || "unknown";
+  const doc = (typeof ROOT !== "undefined" && ROOT.document) ? ROOT.document : document;
 
-  function getUsername() {
-    const el = document.querySelector(".navbar-text");
-    if (!el) return "unknown";
-    const match = el.innerText.match(/Hello,\s*(\w+)!/);
-    return match ? match[1] : "unknown";
+  // --- JOB ID ---
+  let jobId = doc.getElementById("DD_ZZ_NOTIFICATION")?.value;
+
+  if (!jobId) {
+    const params = new URLSearchParams(doc.location.search);
+    jobId = params.get("Notif") || "unknown";
   }
 
-  const user = getUsername();
+  // --- USERNAME ---
+  let user = "unknown";
+  const el = doc.querySelector(".navbar-text");
+  if (el) {
+    const match = el.innerText.match(/Hello,\s*(\w+)!/);
+    if (match) user = match[1];
+  }
 
-  fetch("https://script.google.com/macros/s/AKfycbzaKkGw9VZravpiz2Bf-dAqRBsEq5Z6PptRKigVhCmxpDcbcI9c7_ArZdsaaeBKiUdZNA/exec", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      timestamp: new Date().toISOString(),
-      lines: ok, // 👈 THIS is effectively your final processed count
-      jobId: jobId,
-      user: user
-    })
-  }).catch(() => {});
+
+const endTime = Date.now();
+const durationMs = endTime - startTime;
+const durationSec = durationMs / 1000;
+
+// (avoid division by 0)
+const linesPerSecond = ok > 0 ? ok / durationSec : 0;
+
+
+  console.log("LOG DATA:", { ok, jobId, user, durationSec }); // 👈 DEBUG
+
+const url =
+  "https://script.google.com/macros/s/AKfycbzaKkGw9VZravpiz2Bf-dAqRBsEq5Z6PptRKigVhCmxpDcbcI9c7_ArZdsaaeBKiUdZNA/exec" +
+  "?timestamp=" + encodeURIComponent(new Date().toISOString()) +
+  "&lines=" + encodeURIComponent(ok) +
+  "&jobId=" + encodeURIComponent(jobId) +
+  "&user=" + encodeURIComponent(user) +
+  "&duration=" + encodeURIComponent(durationSec) +
+  "&lps=" + encodeURIComponent(linesPerSecond);
+
+new Image().src = url;
 
 } catch (e) {
   console.warn("Logging failed", e);
